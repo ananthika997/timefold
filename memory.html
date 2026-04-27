@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timefold</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=DM+Sans&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#000; width:100vw; height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+    canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+    #label { position:absolute; text-align:center; pointer-events:none; z-index:2; bottom:22%; }
+    #label .name { font-family:'Playfair Display',serif; font-style:italic; font-size:clamp(18px,5vw,30px); letter-spacing:0.06em; }
+    #label .word { font-family:'DM Sans',sans-serif; font-size:clamp(10px,3vw,13px); letter-spacing:0.22em; text-transform:uppercase; margin-top:6px; color:#8A7A68; }
+    #ghost { position:absolute; opacity:0; transition:opacity 4s ease; z-index:2; bottom:30%; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="label">
+    <div class="name" id="name-el"></div>
+    <div class="word" id="word-el"></div>
+  </div>
+  <svg id="ghost" width="60" height="90" viewBox="0 0 60 90">
+    <circle cx="30" cy="14" r="10" fill="none" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+    <line x1="30" y1="24" x2="30" y2="54" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+    <line x1="30" y1="34" x2="50" y2="20" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+    <line x1="30" y1="34" x2="14" y2="44" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+    <line x1="30" y1="54" x2="20" y2="72" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+    <line x1="30" y1="54" x2="40" y2="72" stroke="rgba(200,210,230,0.6)" stroke-width="1.5"/>
+  </svg>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('name-el').textContent = params.get('name') || 'You';
+    document.getElementById('word-el').textContent = params.get('word') || 'memory';
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const cx = canvas.width/2, cy = canvas.height*0.38;
+    let startTime = null, ghostShown = false;
+    const DURATION = 20000;
+    function lerp(a,b,t){ return a+(b-a)*t; }
+    function getColor(t){
+      if(t<0.5){ return `rgb(${Math.round(lerp(232,160,t*2))},${Math.round(lerp(169,120,t*2))},${Math.round(lerp(74,70,t*2))})`; }
+      else { const tt=(t-0.5)*2; return `rgb(${Math.round(lerp(160,200,tt))},${Math.round(lerp(120,210,tt))},${Math.round(lerp(70,230,tt))})`; }
+    }
+    function draw(ts){
+      if(!startTime) startTime=ts;
+      const prog = Math.min((ts-startTime)/DURATION,1);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const col = getColor(prog);
+      const br = 1-prog*0.7;
+      const r = lerp(70,40,prog);
+      const og = ctx.createRadialGradient(cx,cy,0,cx,cy,r*3);
+      og.addColorStop(0,col.replace('rgb','rgba').replace(')',`,${0.15*br})`));
+      og.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=og; ctx.beginPath(); ctx.arc(cx,cy,r*3,0,Math.PI*2); ctx.fill();
+      const cg = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      cg.addColorStop(0,col.replace('rgb','rgba').replace(')',`,${0.9*br})`));
+      cg.addColorStop(0.5,col.replace('rgb','rgba').replace(')',`,${0.5*br})`));
+      cg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+      document.getElementById('name-el').style.color = col;
+      if(prog>0.75 && !ghostShown){ ghostShown=true; document.getElementById('ghost').style.opacity='0.8'; }
+      if(prog<1) requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>
