@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timefold — Hold your memory</title>
+
+  <!-- MindAR + A-Frame -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; }
+
+    #hint {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(8, 6, 4, 0.75);
+      color: #E8A94A;
+      font-family: sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      padding: 10px 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(232, 169, 74, 0.3);
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 0.5s;
+      white-space: nowrap;
+    }
+
+    #skip {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(8,6,4,0.6);
+      color: #8A7A68;
+      font-family: sans-serif;
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      z-index: 999;
+      cursor: pointer;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="hint">Point camera at the postcard stamp</div>
+  <a id="skip" href="input.html">Skip to memory →</a>
+
+  <a-scene
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no; uiScanning: no;"
+    color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- Everything inside this entity appears anchored to the postcard -->
+    <a-entity mindar-image-target="targetIndex: 0" id="target-anchor">
+
+      <!-- Main glowing orb, floating above the stamp -->
+      <a-sphere
+        id="main-orb"
+        position="0 0.15 0"
+        radius="0.06"
+        color="#E8A94A"
+        roughness="0"
+        metalness="0.2"
+        animation="property: position; from: 0 0.12 0; to: 0 0.20 0;
+                   dur: 1800; dir: alternate; loop: true; easing: easeInOutSine"
+        animation__opacity="property: opacity; from: 0.7; to: 1;
+                            dur: 900; dir: alternate; loop: true">
+      </a-sphere>
+
+      <!-- Soft halo ring around the orb -->
+      <a-torus
+        position="0 0.15 0"
+        radius="0.10"
+        radius-tubular="0.005"
+        color="#E8A94A"
+        opacity="0.3"
+        animation="property: rotation; from: 0 0 0; to: 0 360 0;
+                   dur: 6000; loop: true; easing: linear">
+      </a-torus>
+
+      <!-- Memory word text — reads from URL param -->
+      <a-text
+        id="memory-word"
+        value="memory"
+        position="0 0.30 0"
+        align="center"
+        color="#F0EAD6"
+        width="0.5"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+        animation="property: opacity; from: 0; to: 1; dur: 1200; delay: 600">
+      </a-text>
+
+      <!-- Tap instruction -->
+      <a-text
+        value="tap to hold this"
+        position="0 -0.05 0"
+        align="center"
+        color="#8A7A68"
+        width="0.35"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt">
+      </a-text>
+
+      <!-- Invisible tap target — bigger than the orb so it's easy to tap -->
+      <a-plane
+        position="0 0.15 0"
+        width="0.3"
+        height="0.3"
+        opacity="0"
+        onclick="goToInput()">
+      </a-plane>
+
+    </a-entity>
+
+  </a-scene>
+
+  <script>
+    // Read memory word from URL if coming from input screen
+    // (or let it show as "memory" by default)
+    const params = new URLSearchParams(window.location.search);
+    const word = params.get('word');
+    if (word) {
+      document.addEventListener('DOMContentLoaded', () => {
+        const textEl = document.getElementById('memory-word');
+        if (textEl) textEl.setAttribute('value', word.toUpperCase());
+      });
+    }
+
+    // Update hint text when target found or lost
+    const scene = document.querySelector('a-scene');
+    scene.addEventListener('loaded', () => {
+      const target = document.querySelector('[mindar-image-target]');
+      target.addEventListener('targetFound', () => {
+        document.getElementById('hint').textContent = 'Tap the light to hold this memory';
+      });
+      target.addEventListener('targetLost', () => {
+        document.getElementById('hint').textContent = 'Point camera at the postcard stamp';
+      });
+    });
+
+    function goToInput() {
+      window.location.href = 'input.html';
+    }
+  </script>
+
+</body>
+</html>
